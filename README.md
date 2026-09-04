@@ -24,37 +24,44 @@
 
 ## 🏗️ 系统架构
 
-四层架构已全部打通:数据层(SQLite,首次启动自动建库并填充示例数据)→ 算法层(纯 Python 双算法)→ AI Agent 合规解读层(合规引擎 + 大模型)→ 交互层(Streamlit)。
+四层架构已全部打通:数据层(SQLite,首次启动自动建库并填充示例数据)→ 算法层(纯 Python 双算法)→ AI Agent 合规解读层(合规引擎 + 大模型)→ 交互层(Streamlit)。**流程为「先推荐、后解读」**:算法结果回传页面展示后,再携带推荐结果与客户上下文请求 AI 解读;解读支线经生成前校验 → 大模型生成 → 生成后校验 → 审计落库。
 
 ```mermaid
 graph TB
     subgraph 交互层["交互层:Streamlit"]
-        UI["单页应用 frontend/app.py<br>五区布局 + 解读双卡 + 批次总览图"]
+        UI["frontend/app.py<br>五区布局 + 解读双卡 + 批次总览图<br>(推荐结果展示 → 回传发起解读)"]
     end
     subgraph 服务层["服务层:FastAPI"]
-        API["5 个 /api 端点<br>recommendation_service 编排"]
-    end
-    subgraph Agent层["AI Agent 合规解读层"]
-        CE["compliance_engine<br>生成前检查 / 生成后把关"]
-        RAG["rag_retriever(知识库检索,一期占位)"]
-        LLM["llm_client(Deepseek API)<br>调用失败自动回退内置模板"]
-        AL["audit_logger → agent_audit_log"]
+        API["main.py<br>5 个 /api 端点"]
+        SVC["recommendation_service<br>编排层"]
+        API --> SVC
     end
     subgraph 算法层["算法引擎层(纯 Python 标准库)"]
-        KNN["KNN 最近邻<br>新客户冷启动"]
-        AP["Apriori 关联规则<br>老客户行为挖掘"]
+        KNN["KNN 最近邻<br>新客冷启动"]
+        AP["Apriori 关联规则<br>老客行为挖掘"]
+    end
+    subgraph Agent层["AI Agent 合规解读层"]
+        direction LR
+        CE["compliance_engine<br>输入 / 输出双重校验"]
+        LLM["llm_client<br>Deepseek(失败回退模板)"]
+        AUD["audit_logger<br>审计留痕"]
+        CE --> LLM --> AUD
     end
     subgraph 数据层["数据层:SQLite"]
-        DB[("financial_products.db<br>启动时自动建库填数据")]
+        DB[("financial_products.db<br>启动自动建库填数据")]
     end
 
     UI -->|"requests"| API
-    API -->|"解读请求<br>生成前检查 → 检索 → 生成 → 生成后把关 → 留痕"| CE
-    CE --> RAG --> LLM --> CE --> AL
-    API -->|"推荐请求"| KNN
-    API -->|"推荐请求"| AP
+    API -->|"推荐 / 解读请求"| SVC
+    API -->|"产品 / 分类读取"| DB
+    SVC -->|"推荐"| KNN
+    SVC -->|"推荐"| AP
+    KNN -.->|"推荐结果"| UI
+    AP -.->|"推荐结果"| UI
+    SVC -->|"解读(基于推荐结果)"| CE
     KNN --> DB
     AP --> DB
+    AUD -->|"agent_audit_log"| DB
 ```
 
 精简目录树:
