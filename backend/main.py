@@ -50,14 +50,18 @@ def get_recommendations(data: dict):
 
 @app.post("/api/recommend/explain")
 def explain_recommendations(data: dict):
-    """AI 合规解读（SVC-02）：推荐结果 + 用户上下文 → 合规解读文本（含降级模板路径）"""
+    """AI 解读（SVC-02 + F1 双模式）：推荐结果 + 客户上下文 → 合规解读文本（含降级模板路径）
+
+    mode="analysis"（缺省）：合规解读；mode="script"：对客参考话术。
+    """
     recommendations = data.get('recommendations')
 
     if not recommendations:
         return {"error": "缺少推荐结果"}
 
     user_context = data.get('user_context') or {}
-    return recommendation_service.generate_explanation(recommendations, user_context)
+    mode = data.get('mode', 'analysis')
+    return recommendation_service.generate_explanation(recommendations, user_context, mode)
 
 if __name__ == "__main__":
     import uvicorn

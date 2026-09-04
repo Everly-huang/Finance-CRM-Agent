@@ -103,6 +103,28 @@ def main(expect_demo=False):
               resp.status_code == 200 and contract_ok and body.get("explanation"),
               f"source={body.get('source')},degraded={body.get('degraded')}")
 
+    # 6. script 模式话术契约(F1:五字段齐全,文本键为 script;--expect-demo 时断言演示样例)
+    resp = requests.post(
+        f"{BASE}/api/recommend/explain",
+        json={"recommendations": sample, "user_context": {"客户偏好分类": "稳健理财"}, "mode": "script"},
+        timeout=60,
+    )
+    body = resp.json() if resp.status_code == 200 else {}
+    script_contract_ok = all(k in body for k in ("script", "source", "degraded", "compliance", "disclaimer"))
+    if expect_demo:
+        demo_ok = (body.get("source") == "demo" and body.get("degraded") is False
+                   and "演示样例" in body.get("script", ""))
+        check("script 模式演示契约(F1)",
+              resp.status_code == 200 and script_contract_ok and demo_ok,
+              f"source={body.get('source')},degraded={body.get('degraded')}")
+    else:
+        # 无 key 时降级路径 source=template 含"基础版话术";注入真实 key 时 source=llm,两者均合法
+        script_ok = (body.get("script") and body.get("source") in ("template", "llm")
+                     and (body.get("source") != "template" or "基础版话术" in body.get("script", "")))
+        check("script 模式契约(F1)",
+              resp.status_code == 200 and script_contract_ok and script_ok,
+              f"source={body.get('source')},degraded={body.get('degraded')}")
+
     print()
     if FAILURES:
         print(f"冒烟失败 {len(FAILURES)} 项:{FAILURES}")

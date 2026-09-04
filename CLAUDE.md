@@ -19,17 +19,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 数据层 + 算法层(纯 Python stdlib,4 个文件):[db_connection.py](backend/database/db_connection.py)(含 `agent_audit_log` 审计表)、[nearest_neighbor.py](backend/algorithms/nearest_neighbor.py)、[association_rules.py](backend/algorithms/association_rules.py)
 - Agent 合规解读层([backend/agent/](backend/agent/)):[compliance_engine.py](backend/agent/compliance_engine.py)(黑名单+正则+注入检测+输出后校验,含否定语境豁免)、[llm_client.py](backend/agent/llm_client.py)(Deepseek,30s 超时+重试1次+模板降级)、[prompt_templates.py](backend/agent/prompt_templates.py)(System Prompt+降级模板+免责声明)、[audit_logger.py](backend/agent/audit_logger.py)、[rag_retriever.py](backend/agent/rag_retriever.py)(一期 Mock 空上下文)
 - 服务编排层([backend/services/recommendation_service.py](backend/services/recommendation_service.py)):推荐编排 + Agent 解读流水线(输入校验→RAG→LLM→输出后校验→审计落库)
-- FastAPI 5 端点(含 `POST /api/recommend/explain`),[main.py](backend/main.py) 路由全部委托编排层
+- FastAPI 5 个 /api 端点 + 根路径 `/` 健康检查(启动脚本就绪轮询依赖),[main.py](backend/main.py) 路由全部委托编排层
 - [frontend/app.py](frontend/app.py):Streamlit 单页应用,五区布局(参数配置/一键计算/结果表格/AI 解读/常驻合规声明),启动时预热触发建表播种
 - 根目录 [requirements.txt](requirements.txt)(finance-crm 环境已齐装)
 
-**未实现**(见 [项目落地清单.md](项目落地清单.md),均为规划项):Pydantic 模型(SVC-04)、API 错误码 4xx 规范(SVC-03)、算法输出数值字段(ALG-01)、金额裁剪提示(ALG-02)、Plotly 可视化(UI-03)、RAG 二期(AGT-06)、一键启动脚本(DEP-01)、测试(ENG-05)
+**未实现**(主项;完整清单与验收口径见 [项目落地清单.md](项目落地清单.md) 状态表):Pydantic 模型(SVC-04)、API 错误码 4xx 规范(SVC-03)、算法输出数值字段(ALG-01)、金额裁剪提示(ALG-02)、Plotly 可视化(UI-03)、RAG 二期(AGT-06)、pytest 自动化测试(ENG-05;手动冒烟 ENG-04 已落地,见「常用命令」)
 
 注意:需求文档 V1.1 已与技术栈现状对齐(技术栈表为「当前实现/目标形态」双列:算法层当前=纯 Python stdlib,scikit-learn/mlxtend 为可选演进;Streamlit 前端为规划)。以文档标注的[现状]/[规划]为准。
 
 ## 常用命令
 
-无构建/lint/测试命令、无 CI。项目专用 conda 环境 `finance-crm`(D:\Anaconda\envs\finance-crm,Python 3.11.16),依赖见根目录 [requirements.txt](requirements.txt)(2026-09-03 已齐装)。**一键启动**:双击 [start_demo.bat](start_demo.bat)(或 `start_demo.py`,支持 `--smoke` 自动冒烟)——自动完成 secrets.toml→后端环境变量桥接、起双进程、轮询就绪。手动分步(本机 `python` 命令是 Windows Store stub 不可用,必须用环境完整路径;先起后端再起前端,前端启动会预热触发建表播种):
+无构建/lint/测试命令、无 CI。项目专用 conda 环境 `finance-crm`(D:\Anaconda\envs\finance-crm,Python 3.11.16),依赖见根目录 [requirements.txt](requirements.txt)(2026-09-03 已齐装)。**一键启动**:双击 [start_demo.bat](start_demo.bat)(Git Bash 下用 [start_demo.sh](start_demo.sh);核心逻辑在 `start_demo.py`,支持 `--smoke` 自动冒烟 / `--demo` 演示模式)——自动完成 secrets.toml→后端环境变量桥接、起双进程、轮询就绪。手动分步(本机 `python` 命令是 Windows Store stub 不可用,必须用环境完整路径;先起后端再起前端,前端启动会预热触发建表播种):
 
 ```bash
 cd backend && /d/Anaconda/envs/finance-crm/python.exe main.py            # 启动 uvicorn: http://127.0.0.1:8000
@@ -65,7 +65,7 @@ DEEPSEEK_API_KEY=sk-xxx /d/Anaconda/envs/finance-crm/python.exe main.py
 
 - **key 不入 git**:仅通过环境变量或 Streamlit secrets(`frontend/.streamlit/secrets.toml`,模板已建,空 key 即走降级;填真实 key 后 start_demo.bat 自动桥接注入)注入,禁止硬编码进任何代码/文档;.gitignore 已排除 secrets 与数据库文件(ENG-03)
 - **无 key 不报错**:llm_client 检测到无 key / 断网 / 超时(30s,重试 1 次;真实解读实测生成约 18s)时自动回退预置合规模板,响应标注"基础版解读"并置 `degraded=true`
-- **待对齐(DEP-02 遗留)**:用户要求 key 从 `st.secrets` 读取(secrets 属前端进程,后端进程无法直接读)——待定方案:启动脚本从 secrets.toml 导出为环境变量传给后端,或后端自行解析 secrets.toml
+- **secrets 桥接(已实现)**:`st.secrets` 属前端进程,后端进程无法直接读;start_demo.py 已实现 `bridge_secrets()`——解析 secrets.toml 后将 key 注入后端子进程环境变量。仅手动分步启动时需自行注入环境变量(见上)
 - **DEMO_MODE 开关(SVC-05,已实现)**:环境变量 `DEMO_MODE`(1/true/yes)。`True` 时 [recommendation_service.py](backend/services/recommendation_service.py) 的 `generate_explanation` 直接返回预置演示样例(`source="demo"`,不触及 llm_client,禁止调用任何大模型 API),供公开分享链接场景(零 key 消耗/泄露风险);默认不设=`False` 走 LLM 调用。本地演练:`start_demo.py --demo --smoke`;公开部署:部署平台配置环境变量即可
 
 无测试框架,开发时可绕过 HTTP 直接调算法做冒烟验证(必须以 backend/ 为导入根):
@@ -75,12 +75,18 @@ cd backend && /d/Anaconda/envs/finance-crm/python.exe -c "from algorithms.neares
 cd backend && /d/Anaconda/envs/finance-crm/python.exe -c "from algorithms.association_rules import recommend_products_by_association; print(recommend_products_by_association(4))"
 ```
 
+后端已启动时的 HTTP 冒烟([smoke_test.py](backend/smoke_test.py),ENG-04,7 项检查,退出码 0=全绿;后端以 DEMO_MODE=True 启动时加 `--expect-demo` 断言 source=demo):
+
+```bash
+cd backend && /d/Anaconda/envs/finance-crm/python.exe smoke_test.py
+```
+
 ## 架构
 
 ### 当前(已实现的完整链路)
 
 ```
-[frontend/app.py](Streamlit 五区) --requests--> [main.py](FastAPI 5 端点)
+[frontend/app.py](Streamlit 五区) --requests--> [main.py](FastAPI 5 个 /api 端点)
     --> [services/recommendation_service.py](编排层)
         ├─ 推荐: algorithms/ → db_connection.py → SQLite
         └─ 解读: agent/compliance_engine(输入校验)→ rag_retriever(Mock)→ llm_client(LLM/降级)
@@ -99,7 +105,7 @@ cd backend && /d/Anaconda/envs/finance-crm/python.exe -c "from algorithms.associ
 - RAG 二期:Chroma 向量库 + 产品文档表 + 知识库构建(AGT-06,替换 [rag_retriever.py](backend/agent/rag_retriever.py) Mock 即可,调用方无改动)
 - Pydantic 请求/响应模型(SVC-04)、API 错误码 4xx 规范(SVC-03,替代现状 200+error)
 - 算法输出数值字段(ALG-01:similarity/distance/lift)、金额裁剪提示(ALG-02)、Plotly 可视化(UI-03)
-- DEMO_MODE 开关、key 从 st.secrets 注入对齐(DEP-02,见上)
+- 演示排练脚本(DEP-03)、公开部署路径评估(DEP-04);其余(DAT-02/ALG-03/ALG-04/UI-04 等)见清单状态表
 
 ## 已知陷阱
 
