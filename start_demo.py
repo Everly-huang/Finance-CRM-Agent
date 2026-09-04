@@ -17,6 +17,7 @@ import argparse
 import os
 import subprocess
 import sys
+import tempfile
 import time
 import tomllib  # Python 3.11 内置
 from pathlib import Path
@@ -29,6 +30,14 @@ BACKEND_PORT = 8000
 FRONTEND_PORT = 8501
 SECRETS_FILE = ROOT / "frontend" / ".streamlit" / "secrets.toml"
 ENV_BRIDGE_KEYS = ("DEEPSEEK_API_KEY", "DEEPSEEK_BASE_URL", "DEEPSEEK_MODEL")
+
+# Streamlit 配置目录重定向到可写 Temp 路径（规避 C:\Users\xxx\.streamlit PermissionError WinError 5）
+STREAMLIT_CONFIG_DIR = Path(tempfile.gettempdir()) / "finance_crm_streamlit"
+STREAMLIT_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+os.environ["STREAMLIT_CONFIG_DIR"] = str(STREAMLIT_CONFIG_DIR)
+
+# 后端 PYTHONPATH：确保子进程可 import database/services/agent/algorithms 包
+os.environ["PYTHONPATH"] = str(ROOT / "backend")
 
 
 def bridge_secrets():

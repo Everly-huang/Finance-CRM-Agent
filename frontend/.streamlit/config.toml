@@ -1,0 +1,12 @@
+# 金融产品智能推荐系统（合规版）— Streamlit 主题（Ana UI 风格统一 2026-09-04）
+# 与 UI-03 图表 dataviz 设计语言同源：序贯蓝 #2a78d6 系 / 浅表面 #fcfcfb /
+# 墨色 #0b0b0b / 次墨 #52514e。银行内部工具气质：低饱和、克制、清晰。
+# 注意：该目录下的 secrets.toml 亦被本 config 目录读取（互不影响）。
+
+[theme]
+base = "light"
+primaryColor = "#2a78d6"              # 交互强调色：焦点环/选中态/复选勾/链接（图形对比 ≥3:1）
+backgroundColor = "#fcfcfb"           # 页面浅表面（与图表 plot 表面同色，融合不打架）
+secondaryBackgroundColor = "#ffffff"  # 输入框/控件底（页面级浅灰之上的白色芯片）
+textColor = "#0b0b0b"                 # 主墨色
+font = "sans serif"                   # 具体字体栈由 app.py 注入 CSS 统一（雅黑体系，离线可用）

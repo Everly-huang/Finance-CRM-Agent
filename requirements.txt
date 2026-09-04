@@ -6,9 +6,10 @@
 fastapi>=0.115        # FastAPI 框架(backend/main.py)
 uvicorn>=0.30         # ASGI 服务器,main.py 内置 uvicorn.run
 
-# 前端(规划 UI-01/UI-03)
+# 前端(UI-01/UI-03)
 streamlit>=1.39       # 单页应用框架(frontend/app.py)
 plotly>=5.9           # 交互式图表(结果可视化)
+pandas>=2.1           # 结果表格/CSV 数据源(frontend/app.py 直接导入)
 
 # API 调用
 requests>=2.32        # 前端调后端 + llm_client 调 Deepseek(OpenAI 兼容端点)

@@ -7,9 +7,6 @@
 
 用法:先启动后端(cd backend && /d/Anaconda/envs/finance-crm/python.exe main.py),再运行本脚本:
     cd backend && /d/Anaconda/envs/finance-crm/python.exe smoke_test.py
-退出码:0 = 全绿;1 = 存在失败项
-用法:先启动后端(cd backend && /d/Anaconda/envs/finance-crm/python.exe main.py),再运行本脚本:
-    cd backend && /d/Anaconda/envs/finance-crm/python.exe smoke_test.py
     cd backend && /d/Anaconda/envs/finance-crm/python.exe smoke_test.py --expect-demo  # 后端以 DEMO_MODE=True 启动时
 退出码:0 = 全绿;1 = 存在失败项
 """

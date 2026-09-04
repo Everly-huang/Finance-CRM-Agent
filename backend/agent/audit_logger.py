@@ -13,7 +13,7 @@ def log_agent_call(input_payload, output_text, compliance_result, is_degraded=Fa
     """写入一条审计记录；payload 为 dict/list 时序列化为 JSON 文本。
 
     返回审计记录 ID（写入失败返回 None，不向调用方抛异常）。
-    compliance_result 取值：pass / blocked_input / blocked_output
+    compliance_result 取值：pass / blocked_input / blocked_output / audience_drift
     """
     if not isinstance(input_payload, str):
         input_payload = json.dumps(input_payload, ensure_ascii=False)
