@@ -24,6 +24,8 @@ start_demo.bat          # Windows 双击;Git Bash 下 ./start_demo.sh
 
 脚本自动完成:secrets 桥接 → 启动后端 → 轮询就绪 → 启动前端 → 保持双进程(Ctrl+C 一键停止)。
 
+数据库无需任何准备:首次启动自动建表播种(10 个示例产品 + 8 位客户 38 条历史购买记录),SQLite 文件在本地自动生成,不随仓库分发。
+
 可选参数:
 
 ```bash
