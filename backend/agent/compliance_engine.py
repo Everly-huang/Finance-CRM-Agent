@@ -30,20 +30,51 @@ INJECTION_PATTERNS = [
     r"你(现在是|不再是)",
 ]
 
+# 否定语境豁免：命中项所在句子含以下否定词组时视为合规教育/免责语境，放行。
+# 例：LLM 输出「中低风险不等于无风险」「不构成任何收益保证」「严禁宣传"保证收益"」
+# ——这些是合规话术，不应被裸关键词误拦；真承诺句（无否定词）仍被拦截。
+NEGATION_PHRASES = (
+    "不等于", "不代表", "不构成", "不作为", "并非", "不是", "不得", "不应",
+    "严禁", "禁止", "杜绝", "否认", "绝不", "避免",
+)
+
 _COMPILED_BLOCKED = [re.compile(pattern) for pattern in BLOCKED_PATTERNS]
 _COMPILED_INJECTION = [re.compile(pattern) for pattern in INJECTION_PATTERNS]
+_SENTENCE_SEPARATORS = ("。", "；", "!", "！", "\n")
+
+
+def _is_negated_context(text, match_start):
+    """判断命中位置是否处于否定语境（所在句子含否定词组）"""
+    seg_start = 0
+    for sep in _SENTENCE_SEPARATORS:
+        idx = text.rfind(sep, 0, match_start)
+        seg_start = max(seg_start, idx + 1)
+    seg_end = len(text)
+    for sep in _SENTENCE_SEPARATORS:
+        idx = text.find(sep, match_start)
+        if idx != -1:
+            seg_end = min(seg_end, idx)
+    sentence = text[seg_start:seg_end]
+    return any(phrase in sentence for phrase in NEGATION_PHRASES)
 
 
 def _scan_text(text):
-    """黑名单关键词 + 违规正则扫描，返回违规项列表"""
+    """黑名单关键词 + 违规正则扫描，返回违规项列表（否定语境豁免）"""
     violations = []
     for keyword in BLACKLIST_KEYWORDS:
-        if keyword in text:
-            violations.append({"type": "keyword", "term": keyword})
+        start = text.find(keyword)
+        while start != -1:
+            if not _is_negated_context(text, start):
+                violations.append({"type": "keyword", "term": keyword})
+                break
+            start = text.find(keyword, start + 1)
     for pattern in _COMPILED_BLOCKED:
         match = pattern.search(text)
-        if match:
-            violations.append({"type": "regex", "term": match.group(0)})
+        while match:
+            if not _is_negated_context(text, match.start()):
+                violations.append({"type": "regex", "term": match.group(0)})
+                break
+            match = pattern.search(text, match.end())
     return violations
 
 

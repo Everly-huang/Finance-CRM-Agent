@@ -1,8 +1,9 @@
 """LLM 客户端（AGT-02）
 
 接入 Deepseek API（OpenAI 兼容端点），使用 requests 直连以减少依赖（ENG-02）。
-降级策略（需求文档 8.1 / 清单 AGT-02）：timeout 8s + 失败重试 1 次 + 模板降级——
+降级策略（需求文档 8.1 / 清单 AGT-02）：timeout 30s + 失败重试 1 次 + 模板降级——
 断网 / 无 key / 超时一律回退预置合规模板并标注"基础版解读"，不向调用方抛异常。
+（30s 依据:真实解读五段文本实测生成耗时约 18s,8s 会 ReadTimeout 误判降级）
 """
 
 import os
@@ -13,7 +14,7 @@ from agent.prompt_templates import build_fallback_explanation
 
 DEFAULT_BASE_URL = "https://api.deepseek.com"
 DEFAULT_MODEL = "deepseek-chat"
-TIMEOUT_SECONDS = 8
+TIMEOUT_SECONDS = 30
 MAX_ATTEMPTS = 2  # 1 次调用 + 1 次重试
 
 

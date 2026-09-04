@@ -17,7 +17,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **已实现**(2026-09-03,四层架构一期全链路贯通):
 - 数据层 + 算法层(纯 Python stdlib,4 个文件):[db_connection.py](backend/database/db_connection.py)(含 `agent_audit_log` 审计表)、[nearest_neighbor.py](backend/algorithms/nearest_neighbor.py)、[association_rules.py](backend/algorithms/association_rules.py)
-- Agent 合规解读层([backend/agent/](backend/agent/)):[compliance_engine.py](backend/agent/compliance_engine.py)(黑名单+正则+注入检测+输出后校验)、[llm_client.py](backend/agent/llm_client.py)(Deepseek,8s 超时+重试1次+模板降级)、[prompt_templates.py](backend/agent/prompt_templates.py)(System Prompt+降级模板+免责声明)、[audit_logger.py](backend/agent/audit_logger.py)、[rag_retriever.py](backend/agent/rag_retriever.py)(一期 Mock 空上下文)
+- Agent 合规解读层([backend/agent/](backend/agent/)):[compliance_engine.py](backend/agent/compliance_engine.py)(黑名单+正则+注入检测+输出后校验,含否定语境豁免)、[llm_client.py](backend/agent/llm_client.py)(Deepseek,30s 超时+重试1次+模板降级)、[prompt_templates.py](backend/agent/prompt_templates.py)(System Prompt+降级模板+免责声明)、[audit_logger.py](backend/agent/audit_logger.py)、[rag_retriever.py](backend/agent/rag_retriever.py)(一期 Mock 空上下文)
 - 服务编排层([backend/services/recommendation_service.py](backend/services/recommendation_service.py)):推荐编排 + Agent 解读流水线(输入校验→RAG→LLM→输出后校验→审计落库)
 - FastAPI 5 端点(含 `POST /api/recommend/explain`),[main.py](backend/main.py) 路由全部委托编排层
 - [frontend/app.py](frontend/app.py):Streamlit 单页应用,五区布局(参数配置/一键计算/结果表格/AI 解读/常驻合规声明),启动时预热触发建表播种
@@ -63,8 +63,8 @@ $env:DEEPSEEK_API_KEY = "sk-xxx"
 DEEPSEEK_API_KEY=sk-xxx /d/Anaconda/envs/finance-crm/python.exe main.py
 ```
 
-- **key 不入 git**:仅通过环境变量或 Streamlit secrets(`.streamlit/secrets.toml`)注入,禁止硬编码进任何代码/文档;secrets 与 key 的 .gitignore 排除随 ENG-03 落地
-- **无 key 不报错**:llm_client 检测到无 key / 断网 / 超时(8s,重试 1 次)时自动回退预置合规模板,响应标注"基础版解读"并置 `degraded=true`
+- **key 不入 git**:仅通过环境变量或 Streamlit secrets(`frontend/.streamlit/secrets.toml`,模板已建,空 key 即走降级;填真实 key 后 start_demo.bat 自动桥接注入)注入,禁止硬编码进任何代码/文档;.gitignore 已排除 secrets 与数据库文件(ENG-03)
+- **无 key 不报错**:llm_client 检测到无 key / 断网 / 超时(30s,重试 1 次;真实解读实测生成约 18s)时自动回退预置合规模板,响应标注"基础版解读"并置 `degraded=true`
 - **待对齐(DEP-02 遗留)**:用户要求 key 从 `st.secrets` 读取(secrets 属前端进程,后端进程无法直接读)——待定方案:启动脚本从 secrets.toml 导出为环境变量传给后端,或后端自行解析 secrets.toml
 - **DEMO_MODE 开关(SVC-05,已实现)**:环境变量 `DEMO_MODE`(1/true/yes)。`True` 时 [recommendation_service.py](backend/services/recommendation_service.py) 的 `generate_explanation` 直接返回预置演示样例(`source="demo"`,不触及 llm_client,禁止调用任何大模型 API),供公开分享链接场景(零 key 消耗/泄露风险);默认不设=`False` 走 LLM 调用。本地演练:`start_demo.py --demo --smoke`;公开部署:部署平台配置环境变量即可
 

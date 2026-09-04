@@ -48,7 +48,7 @@ def call_explain(recommendations, user_context):
     response = requests.post(
         f"{API_BASE}/api/recommend/explain",
         json={"recommendations": recommendations, "user_context": user_context},
-        timeout=60,
+        timeout=90,  # 后端 LLM 30s 超时 + 重试 1 次 = 60s 上限,前端留余量
     )
     response.raise_for_status()
     return response.json()
