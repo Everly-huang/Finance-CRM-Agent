@@ -1,0 +1,14 @@
+# 金融产品智能推荐系统 —— 依赖清单
+# 环境:conda env finance-crm (Python 3.11) | 依据《需求文档评审报告》L-01 草案
+# 版本约束采用「已测版本下限」,不锁死
+
+# 后端 API
+fastapi>=0.115        # FastAPI 框架(backend/main.py)
+uvicorn>=0.30         # ASGI 服务器,main.py 内置 uvicorn.run
+
+# 前端(规划 UI-01/UI-03)
+streamlit>=1.39       # 单页应用框架(frontend/app.py)
+plotly>=5.9           # 交互式图表(结果可视化)
+
+# API 调用
+requests>=2.32        # 前端调后端 + llm_client 调 Deepseek(OpenAI 兼容端点)
